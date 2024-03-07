@@ -2,60 +2,39 @@ name: Docker CI/CD
 
 on:
   push:
-    branches: [ main ]
-    paths:
-      - src/**
-  pull_request:
-    branches: [ main ]
-    paths:
-      - src/**
+    branches:
+      - main
 
 jobs:
-  build:
-    name: build and push Docker image
+  build-and-push-docker:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-          
-      - name: Login to DockerHub
-        uses: docker/login-action@v3 
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-          
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true 
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/appdevops:latest
+    - uses: actions/checkout@v2
 
-  aws:
-    name: Deploy image to aws
-    needs: build
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v1
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v2
+      with:
+        push: true
+        tags: fernandorr737/examendevops:latest
+
+  deploy-to-ec2:
+    needs: build-and-push-docker
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - name: copy docker compose via ssh key
-      uses: appleboy/scp-action@v0.1.7
-      with:
-        host: ${{ secrets.AWS_HOSTNAME }}
-        port: 22 # ${{ secrets.PORT }}
-        key: ${{ secrets.AWS_PRIVATE_KEY }}
-        source: "docker-compose.yml"
-        target: /home/admin
-    - name: script deploy docker services
-      uses: appleboy/ssh-action@v1.0.3
+    - name: Deploy to EC2 via SSH
+      uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.AWS_HOSTNAME }}
         username: ${{ secrets.AWS_USER_NAME }}
-        key: ${{ secrets.AWS_PRIVATE_KEY }}
-        port: 22  # ${{ secrets.PORT }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
-            sleep 60
-            docker compose down --rmi all
-            docker compose up -d
-
-# https://github.com/docker/login-action
-# https://github.com/docker/build-push-action
-# https://github.com/appleboy/ssh-action
+          docker pull fernandorr737/examendevops:latest
+          docker stop examendevops || true
+          docker rm examendevops || true
+          docker run --name examendevops -d -p 5000:5000 fernandorr737/examendevops:latest
