@@ -32,7 +32,7 @@ jobs:
       with:
         host: ${{ secrets.AWS_HOSTNAME }}
         username: ${{ secrets.AWS_USER_NAME }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        key: ${{ secrets.AWS_PRIVATE_KEY }}
         script: |
           docker pull fernandorr737/examendevops:latest
           docker stop examendevops || true
