@@ -40,7 +40,6 @@ jobs:
       uses: appleboy/scp-action@v0.1.7
       with:
         host: ${{ secrets.AWS_HOSTNAME }}
-        username: ${{ secrets.AWS_USER_NAME }}
         port: 22 # ${{ secrets.PORT }}
         key: ${{ secrets.AWS_PRIVATE_KEY }}
         source: "docker-compose.yml"
